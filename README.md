@@ -43,20 +43,22 @@ Repository for personal HomeLab configs
 
 ## Prod
 Proxmox
-Currently being refreshed due to broken IOMMU stopping Intel GPU passthrough
-- [GA-Z170X-UD5](https://www.gigabyte.com/Motherboard/GA-Z170X-UD5-rev-10)
-- [i7-7700k](https://www.intel.com/content/www/us/en/products/sku/97129/intel-core-i77700k-processor-8m-cache-up-to-4-50-ghz/specifications.html)
-- 32 GB mixed DDR4
+- [Asus Pro WS B850M-ACE](https://www.asus.com/us/motherboards-components/motherboards/workstation/pro-ws-b850m-ace-se/)
+- [Epyc 4545p](https://www.amd.com/en/products/processors/server/epyc/4005-series/amd-epyc-4545p.html)
 - 2X 512GB Samsung boot SSD
 - 2X 1TB data ssd
 - [Intel B50 GPU](https://www.intel.com/content/www/us/en/products/sku/242615/intel-arc-pro-b50-graphics/specifications.html)
-
+    - Used for AI
+- [Intel 310 GPU](https://www.intel.com/content/www/us/en/products/sku/227958/intel-arc-a310-graphics/specifications.html)
+    - Used for Jellyfin
+ 
 ## Test
 Proxmox
-- X99 Motherboard
-- [i7-5820k](https://www.intel.com/content/www/us/en/products/sku/82932/intel-core-i75820k-processor-15m-cache-up-to-3-60-ghz/specifications.html)
+- [GA-Z170X-UD5](https://www.gigabyte.com/Motherboard/GA-Z170X-UD5-rev-10)
+- [i7-7700k](https://www.intel.com/content/www/us/en/products/sku/97129/intel-core-i77700k-processor-8m-cache-up-to-4-50-ghz/specifications.html)
 - 32GB mixed DDR4
 - 2X 256GB Intel boot SSD
+- 1X 1TB data ssd
 - [MSI 2070 Super GPU](https://www.msi.com/Graphics-Card/GeForce-RTX-2070-SUPER-GAMING-X/Specification)
 
 ## NAS
