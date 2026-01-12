@@ -14,7 +14,7 @@
     1. Reboot
         - Outputs: Completed Post Install Routines
 
-## Setup Passthrough & Disable i915/XE Graphics
+## Setup Passthrough & Disable i915/XE Graphics in Proxmox
 1. Validate AMD IOMMU is on
     - Copied from here: [Link](https://forum.proxmox.com/threads/enabling-iommu.119217/post-517232)
     - `for d in /sys/kernel/iommu_groups/*/devices/*; do n=${d#*/iommu_groups/*}; n=${n%%/*}; printf 'IOMMU group %s ' "$n"; lspci -nns "${d##*/}"; done`
@@ -102,3 +102,136 @@
     <br>
     <img width=50% height=50% src="../Assets/Notes/Proxmox/IOMMU-VFIO-Kernel-Driver-Module-XE.png">
 1. Passthrough should now be good to go for the Intel A310 & the Intel B50 GPUs
+
+### Actually do the passthrough for the A310 into a Debian 13 VM as a test
+1. Download the Debian OS into Proxmox
+    - Stable [http-fpt](https://www.debian.org/CD/http-ftp/#stable) site
+    - Choose CD or DVD (CD requires more stuff to be installed opver network post install)
+    - [Link](https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/)
+1. Make sure you validate the SHA to make sure the ISO hasn't been tampered with
+1. Create a VM in Proxmox
+    - Don't attach the passed through devices you're interested in immediately as you'll lose GUI console access
+1. Set up the VM with:
+    1. CPU cores: Host
+    1. RAM: Non-Ballooning as that can cause issues
+    1. BIOS: OVMF (UEFI)
+    1. Display: Default
+    1. Machine: q35
+1. Follow install instructions as needed
+1. Install SSH as I'll be using putty for any actual hardware usage due to losing console access
+1. Once the VM has been set up & the OS installed, you can now add the GPU as a passthroughed device
+    - I had to passthrough both my GPU + GPU's audio as 2 separate PCI devices
+    - Select PCI Device & Primary GPU fo the GPU side of things.
+    - Should look something like: 
+    <br>
+    <img width=50% height=50% src="../Assets/Notes/Proxmox/PCI-Passthrough-VM-Creation-Add-Device.png">
+    <br>
+    <img width=50% height=50% src="../Assets/Notes/Proxmox/PCI-Passthrough-VM-Creation-Edit-PCI-Device.png">
+1. Now you can boot the VM again, and you can start installing more packages & forcing the `i915` driver off
+    - Packages can be installed earlier but ¯\\_(ツ)_/¯
+1. Call `nano /etc/default/grub` in the VM to edit the VM's boot details
+1. Update the cmdline to include `i915.force_probe=!56a6 xe.force_probe=56a6`
+    - End result: `GRUB_CMDLINE_LINUX_DEFAULT="quiet i915.force_probe=!56a6 xe.force_probe=56a6"`
+1. Update Grub + initramfs: 
+    - `update-grub`
+    - `update-initramfs -u -k all`
+1. Reboot
+1. Call `lspci -k | grep -A4 VGA` and you should get a response that the `kernel drive in use: xe` for the GPU
+
+### Validate that Passthrough exposes the correct info
+1. Run `apt install -y intel-media-va-driver libva2 libva-drm2 vainfo ffmpeg`
+    - `intel-media-va-driver` contains the Arc driver & VAAPI driver stuff
+    - `vainfo` is used to validation of what's supported by the GPU
+    - `ffmpeg` is the actual test tool
+1. Enable `*_qsv` functionality with the following libraries: `apt install libvpl2 libvpl-dev`
+1. Update VAAPI to use DRM since it's a headless install
+    - `export LIBVA_DRIVER_NAME=iHD`
+    - `export LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri`
+1. Validate `card0` & `renderD128` exist and are available to use
+    - `ls -l /dev/dri/`
+    - The output will be something like:
+    <br>
+    ```
+    total 0
+    drwxr-xr-x  2 root root        100 Jan 11 20:55 by-path
+    crw-rw----+ 1 root video  226,   0 Jan 11 20:55 card0
+    crw-rw----+ 1 root video  226,   1 Jan 11 20:55 card1
+    crw-rw----+ 1 root render 226, 128 Jan 11 20:55 renderD128
+    ```
+1. Call `vainfo --display drm --device /dev/dri/renderD128`
+    - This sees what the GPU is pushing as available for supported profiles
+    - The output will be something like:
+    <br>
+    ```
+    Trying display: drm
+    libva info: VA-API version 1.22.0
+    libva info: User environment variable requested driver 'iHD'
+    libva info: Trying to open /usr/lib/x86_64-linux-gnu/dri/iHD_drv_video.so
+    libva info: Found init function __vaDriverInit_1_22
+    libva info: va_openDriver() returns 0
+    vainfo: VA-API version: 1.22 (libva 2.22.0)
+    vainfo: Driver version: Intel iHD driver for Intel(R) Gen Graphics - 25.2.3 ()
+    vainfo: Supported profile and entrypoints
+    VAProfileNone                   : VAEntrypointVideoProc
+    VAProfileNone                   : VAEntrypointStats
+    VAProfileMPEG2Simple            : VAEntrypointVLD
+    VAProfileMPEG2Main              : VAEntrypointVLD
+    VAProfileH264Main               : VAEntrypointVLD
+    VAProfileH264Main               : VAEntrypointEncSliceLP
+    VAProfileH264High               : VAEntrypointVLD
+    VAProfileH264High               : VAEntrypointEncSliceLP
+    VAProfileJPEGBaseline           : VAEntrypointVLD
+    VAProfileJPEGBaseline           : VAEntrypointEncPicture
+    VAProfileH264ConstrainedBaseline: VAEntrypointVLD
+    VAProfileH264ConstrainedBaseline: VAEntrypointEncSliceLP
+    VAProfileHEVCMain               : VAEntrypointVLD
+    ........
+    ```
+
+
+### Validate with ffmpeg built-in test, VAAPI test, and finally Big Buck Bunny
+1. `cd ../home`
+1. Run:
+    ```
+    ffmpeg -y
+        -f lavfi \
+        -i testsrc2=size=1920x1080:rate=30 \
+        -t 10 \
+        -pix_fmt yuv420p \
+        test-h264.mp4
+    ```
+    - This will output a file to a test-h264.mp4 file
+    - There should be no errors
+    - There should be an output like: `frame=  300 fps= 78 q=-1.0 Lsize=    7489KiB time=00:00:09.93 bitrate=6175.8kbits/s speed=2.59x`
+1. Testing VAAPI decodes run:
+    ```
+    ffmpeg -hide_banner \
+        -hwaccel vaapi \
+        -hwaccel_device /dev/dri/renderD128 \
+        -hwaccel_output_format vaapi \
+        -i test-h264.mp4 -f null -
+    ```
+    - There should be an output like: `frame=  300 fps=0.0 q=-0.0 Lsize=N/A time=00:00:10.00 bitrate=N/A speed=30.8x`
+1. Download [Big Buck Bunny](https://download.blender.org/peach/bigbuckbunny_movies/)
+    - ChatGPT chose the smaller version to help me as it's a quicker download
+    - `wget -O test.mp4 https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4`
+1. Actually test a VAAPI transcode
+    ```
+    ffmpeg -hide_banner -hwaccel vaapi \
+        -hwaccel_device /dev/dri/renderD128 \
+        -hwaccel_output_format vaapi \
+        -i test.mp4 -f null -
+    ```
+1. Test an AV1 decode:
+    ```
+    ffmpeg -y \
+    -f lavfi \
+    -i testsrc2=size=1280x720:rate=30 \
+    -t 10 \
+    -pix_fmt yuv420p \
+    test-av1.mkv
+    ```
+    - This is a software encode but it shows that software encodes work
+
+# TODO:
+- redo this with ubuntu
