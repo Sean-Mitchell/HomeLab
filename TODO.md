@@ -17,7 +17,9 @@
     - [ ] Create "Password" file in veracrypt
         - [ ] To use the Jim's Garage password command [Run Here](https://youtu.be/DoiBm5VC-oo?t=410)
     - [ ] Create SSH key in veracrypt
-- [ ] 
+- [ ] Update Vagrant box to mount the entire Homnelab repo as a shared folder so that I only need to pull this repo once
+    - [ ] TBD: Figure out how to elegantly copy the repo + silo any actions to happen on the VM only
+        - Make sure secrets are never unencrypted on host machine
 
 ## Packer
 
