@@ -49,15 +49,18 @@ source "proxmox-iso" "ubuntu-ai-server" {
     scsi_controller = "virtio-scsi-pci"
 
     disks {
-        disk_size = "20G"
-        format = "qcow2"
+        disk_size = "100G"
+        format = "raw"
         storage_pool = "local-lvm"
         storage_pool_type = "lvm"
-        type = "virtio"
+        type = "scsi"
+        discard = "true"
+        ssd = "true"
     }
 
     # VM CPU Settings
     cores = "4"
+    cpu_type = "host"
     
     # VM Memory Settings
     memory = "8096" 
@@ -74,23 +77,11 @@ source "proxmox-iso" "ubuntu-ai-server" {
     cloud_init_storage_pool = "local-lvm"
 
     # PACKER Boot Commands
-    boot_command = [
-        "<esc><wait>",
-        "<esc><wait>",
-        "c<wait>",
-        "set gfxpayload=keep",
-        "<enter><wait>",
-        "linux /casper/vmlinuz quiet<wait>",
-        " autoinstall<wait>",
-        " ds=nocloud;<wait>",
-        "<enter><wait>",
-        "initrd /casper/initrd",
-        "<enter><wait>",
-        "boot<enter><wait>",
-    ]
+    # Taken from Chef https://github.com/chef/bento/blob/main/os_pkrvars/ubuntu/ubuntu-24.04-x86_64.pkrvars.hcl
+    boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/ubuntu/<wait><f10><wait>"]
 
     # PACKER Autoinstall Settings
-    http_directory = "ubuntu-ai-server" 
+    http_directory = "http" 
     # (Optional) Bind IP Address and Port
     // http_bind_address = "0.0.0.0"
     http_port_min = 8800
@@ -102,7 +93,7 @@ source "proxmox-iso" "ubuntu-ai-server" {
     # ssh_password = "PLAINTEXT_PASSWORD"
     # - or -
     # (Option 2) Add your Private SSH KEY file here
-    ssh_private_key_file = "~/.ssh/id_rsa"
+    ssh_private_key_file = "/vera/.ssh/id_rsa"
 
     # Raise the timeout, when installation takes longer
     ssh_timeout = "20m"
@@ -110,10 +101,8 @@ source "proxmox-iso" "ubuntu-ai-server" {
 
 # Build Definition to create the VM Template
 build {
-
     name = "ubuntu-ai-server"
     sources = ["source.proxmox-iso.ubuntu-ai-server"]
-
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox #1
     provisioner "shell" {
         inline = [
@@ -132,17 +121,15 @@ build {
 
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox #2
     provisioner "file" {
-        source = "cloud-init-config/99-pve.cfg"
+        source      = "files/99-pve.cfg"
         destination = "/tmp/99-pve.cfg"
     }
 
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox #3
     provisioner "shell" {
-        inline = [ 
-            "sudo cp /tmp/99-pve.cfg /etc/cloud/cloud.cfg.d/99-pve.cfg"
-            ]
+        inline = [ "sudo cp /tmp/99-pve.cfg /etc/cloud/cloud.cfg.d/99-pve.cfg" ]
     }
-
+    
     # Add additional provisioning scripts here
     # ...
 
