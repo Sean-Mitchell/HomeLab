@@ -70,16 +70,14 @@ source "proxmox-iso" "ubuntu-ai-server" {
         model = "virtio"
         bridge = "vmbr0"
         firewall = "false"
+        mac_address = "12:12:12:12:12:12"
     } 
 
     # VM Cloud-Init Settings
     cloud_init = true
-    cloud_init_storage_pool = "local-lvm"
+    cloud_init_storage_pool = "local-zfs"
 
     # PACKER Boot Commands
-    # Taken from Chef https://github.com/chef/bento/blob/main/os_pkrvars/ubuntu/ubuntu-24.04-x86_64.pkrvars.hcl
-    #boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/http/ systemd.show_status=1 systemd.log_level=debug systemd.log_target=console<wait><f10><wait>"]
-    #boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/http/<wait><f10><wait>"]
     boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/<wait><f10><wait>"]
 
     # PACKER Autoinstall Settings

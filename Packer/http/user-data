@@ -7,7 +7,9 @@ autoinstall:
   network:
     version: 2
     ethernets:
-      enp14s0:
+      primary:
+        match:
+          macaddress: "12:12:12:12:12:12"
         dhcp4: true
   ssh:
     install-server: true
@@ -26,7 +28,7 @@ autoinstall:
       size: 0
   user-data:
     package_upgrade: false
-    timezone: America/UTC
+    timezone: UTC
     users:
       - name: ubuntu
         groups: [adm, sudo]
