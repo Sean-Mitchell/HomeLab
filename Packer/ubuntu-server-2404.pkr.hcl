@@ -34,11 +34,12 @@ source "proxmox-iso" "ubuntu-ai-server" {
     # iso_file = "local:iso/ubuntu-20.04-live-server-amd64.iso"
     # - or -
     # (Option 2) Download ISO
-    boot_iso = {
+    boot_iso  {
         iso_checksum = "e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433"
-        iso_url = "https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-live-server-amd64.iso"
+        iso_urls  = ["https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-live-server-amd64.iso", "https://mirror.pilotfiber.com/ubuntu-iso/24.04.4/ubuntu-24.04.4-live-server-amd64.iso"]
+        iso_storage_pool = "local"
         type = "scsi"
-        unmount_iso = true
+        unmount = true
     }
     
 
@@ -51,8 +52,7 @@ source "proxmox-iso" "ubuntu-ai-server" {
     disks {
         disk_size = "100G"
         format = "raw"
-        storage_pool = "local-lvm"
-        storage_pool_type = "lvm"
+        storage_pool = "local-zfs"
         type = "scsi"
         discard = "true"
         ssd = "true"
@@ -78,14 +78,18 @@ source "proxmox-iso" "ubuntu-ai-server" {
 
     # PACKER Boot Commands
     # Taken from Chef https://github.com/chef/bento/blob/main/os_pkrvars/ubuntu/ubuntu-24.04-x86_64.pkrvars.hcl
-    boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/ubuntu/<wait><f10><wait>"]
+    #boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/http/ systemd.show_status=1 systemd.log_level=debug systemd.log_target=console<wait><f10><wait>"]
+    #boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/http/<wait><f10><wait>"]
+    boot_command = ["<wait>e<wait><down><down><down><end> autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/<wait><f10><wait>"]
 
     # PACKER Autoinstall Settings
     http_directory = "http" 
     # (Optional) Bind IP Address and Port
     // http_bind_address = "0.0.0.0"
-    http_port_min = 8800
-    http_port_max = 8810
+    http_port_min = 8888
+    http_port_max = 8888
+    # Non-NAT'd VBox IP defined in vagrant
+    http_interface = "eth1"
 
     ssh_username = "ubuntu"
 
@@ -93,7 +97,7 @@ source "proxmox-iso" "ubuntu-ai-server" {
     # ssh_password = "PLAINTEXT_PASSWORD"
     # - or -
     # (Option 2) Add your Private SSH KEY file here
-    ssh_private_key_file = "/vera/.ssh/id_rsa"
+    ssh_private_key_file = "/vera/.ssh/id_ed25519"
 
     # Raise the timeout, when installation takes longer
     ssh_timeout = "20m"

@@ -4,6 +4,8 @@
 *.develop
 *.dev
 .vagrant
+*.iso
+*.iso.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

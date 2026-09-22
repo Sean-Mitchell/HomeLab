@@ -3,14 +3,19 @@ autoinstall:
   version: 1
   locale: en_US
   keyboard:
-    layout: en
+    layout: us
+  network:
+    version: 2
+    ethernets:
+      enp14s0:
+        dhcp4: true
   ssh:
     install-server: true
-    allow-pw: false
+    allow-pw: true
     disable_root: false
     ssh_quiet_keygen: true
     allow_public_ssh_keys: true
-    allow_password_authentication: false
+    allow_password_authentication: true
   packages:
     - qemu-guest-agent
     - sudo
@@ -21,7 +26,7 @@ autoinstall:
       size: 0
   user-data:
     package_upgrade: false
-    timezone: America/Chicago
+    timezone: America/UTC
     users:
       - name: ubuntu
         groups: [adm, sudo]
@@ -29,4 +34,4 @@ autoinstall:
         sudo: ALL=(ALL) NOPASSWD:ALL
         shell: /bin/bash
         ssh_authorized_keys:
-        
+          - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMHcljKLlBxkatsgc0ffYFuStFuMX19Sad0YBNAFaEF1 vagrant@vagrant
